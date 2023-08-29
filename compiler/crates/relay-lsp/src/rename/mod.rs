@@ -45,27 +45,11 @@ pub fn on_rename(
 
             match node_path {
                 ResolutionPath::Ident(IdentPath {
-                    inner: fragment_spread_name,
-                    parent: IdentParent::FragmentSpreadName(_),
+                    inner: name,
+                    parent:
+                        IdentParent::FragmentSpreadName(_) | IdentParent::FragmentDefinitionName(_),
                 }) => {
-                    let changes = rename_fragment(
-                        fragment_spread_name.value,
-                        params.new_name,
-                        program,
-                        root_dir,
-                    );
-
-                    Ok(Some(WorkspaceEdit {
-                        changes: Some(changes),
-                        ..Default::default()
-                    }))
-                }
-                ResolutionPath::Ident(IdentPath {
-                    inner: fragment_name,
-                    parent: IdentParent::FragmentDefinitionName(_),
-                }) => {
-                    let changes =
-                        rename_fragment(fragment_name.value, params.new_name, program, root_dir);
+                    let changes = rename_fragment(name.value, params.new_name, program, root_dir);
 
                     Ok(Some(WorkspaceEdit {
                         changes: Some(changes),
@@ -111,30 +95,13 @@ pub fn on_prepare_rename(
 
             match node_path {
                 ResolutionPath::Ident(IdentPath {
-                    inner: fragment_spread_name,
-                    parent: IdentParent::FragmentSpreadName(_),
+                    inner: name,
+                    parent:
+                        IdentParent::FragmentSpreadName(_)
+                        | IdentParent::FragmentDefinitionName(_)
+                        | IdentParent::OperationDefinitionName(_),
                 }) => {
-                    let location = IRLocation::new(source_location_key, fragment_spread_name.span);
-                    let lsp_location =
-                        transform_relay_location_to_lsp_location(root_dir, location)?;
-
-                    Ok(Some(PrepareRenameResponse::Range(lsp_location.range)))
-                }
-                ResolutionPath::Ident(IdentPath {
-                    inner: fragment_name,
-                    parent: IdentParent::FragmentDefinitionName(_),
-                }) => {
-                    let location = IRLocation::new(source_location_key, fragment_name.span);
-                    let lsp_location =
-                        transform_relay_location_to_lsp_location(root_dir, location)?;
-
-                    Ok(Some(PrepareRenameResponse::Range(lsp_location.range)))
-                }
-                ResolutionPath::Ident(IdentPath {
-                    inner: operation_name,
-                    parent: IdentParent::OperationDefinitionName(_),
-                }) => {
-                    let location = IRLocation::new(source_location_key, operation_name.span);
+                    let location = IRLocation::new(source_location_key, name.span);
                     let lsp_location =
                         transform_relay_location_to_lsp_location(root_dir, location)?;
 
