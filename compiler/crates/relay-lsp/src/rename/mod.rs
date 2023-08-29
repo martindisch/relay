@@ -48,7 +48,7 @@ pub fn on_rename(
                     parent:
                         IdentParent::FragmentSpreadName(_) | IdentParent::FragmentDefinitionName(_),
                 }) => {
-                    let changes = rename_fragment(name.value, params.new_name, program, root_dir);
+                    let changes = rename_fragment(name.value, params.new_name, program, root_dir)?;
 
                     Ok(Some(WorkspaceEdit {
                         changes: Some(changes),
@@ -61,7 +61,7 @@ pub fn on_rename(
                 }) => {
                     let location = IRLocation::new(source_location_key, operation_name.span);
                     let lsp_location =
-                        transform_relay_location_to_lsp_location(root_dir, location).unwrap();
+                        transform_relay_location_to_lsp_location(root_dir, location)?;
                     let changes = rename_operation(params.new_name, lsp_location);
 
                     Ok(Some(WorkspaceEdit {
@@ -136,7 +136,7 @@ pub fn on_will_rename_files(
             continue;
         }
 
-        let full_text = get_file_contents(&old_path).unwrap();
+        let full_text = get_file_contents(&old_path)?;
 
         let embedded_sources = extract_graphql::extract(&full_text);
         if embedded_sources.is_empty() {
@@ -164,7 +164,7 @@ pub fn on_will_rename_files(
                                 let new_frag_name =
                                     old_frag_name.replace(old_file_name, new_file_name);
 
-                                rename_fragment(frag_name, new_frag_name, program, root_dir)
+                                rename_fragment(frag_name, new_frag_name, program, root_dir)?
                             }
                             ExecutableDefinition::Operation(op_def) => {
                                 let operation_name_identifier = op_def.name.unwrap();
@@ -214,20 +214,18 @@ fn rename_fragment(
     new_fragment_name: String,
     program: &Program,
     root_dir: &PathBuf,
-) -> HashMap<Url, Vec<TextEdit>> {
-    FragmentFinder::get_fragment_usages(program, fragment_name)
-        .into_iter()
-        .fold(HashMap::new(), |mut changes, location| {
-            let lsp_location =
-                transform_relay_location_to_lsp_location(root_dir, location).unwrap();
+) -> LSPRuntimeResult<HashMap<Url, Vec<TextEdit>>> {
+    let mut changes = HashMap::<Url, Vec<TextEdit>>::new();
 
-            changes.entry(lsp_location.uri).or_default().push(TextEdit {
-                range: lsp_location.range,
-                new_text: new_fragment_name.to_owned(),
-            });
+    for location in FragmentFinder::get_fragment_usages(program, fragment_name) {
+        let lsp_location = transform_relay_location_to_lsp_location(root_dir, location)?;
+        changes.entry(lsp_location.uri).or_default().push(TextEdit {
+            range: lsp_location.range,
+            new_text: new_fragment_name.to_owned(),
+        });
+    }
 
-            changes
-        })
+    Ok(changes)
 }
 
 #[derive(Debug, Clone)]
