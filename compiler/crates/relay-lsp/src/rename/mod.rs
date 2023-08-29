@@ -60,10 +60,8 @@ pub fn on_rename(
                     parent: IdentParent::OperationDefinitionName(_),
                 }) => {
                     let location = IRLocation::new(source_location_key, operation_name.span);
-
                     let lsp_location =
                         transform_relay_location_to_lsp_location(root_dir, location).unwrap();
-
                     let changes = rename_operation(params.new_name, lsp_location);
 
                     Ok(Some(WorkspaceEdit {
@@ -228,19 +226,16 @@ fn rename_fragment(
 ) -> HashMap<Url, Vec<TextEdit>> {
     FragmentFinder::get_fragment_usages(program, fragment_name)
         .into_iter()
-        .fold(HashMap::new(), |mut map, location| {
+        .fold(HashMap::new(), |mut changes, location| {
             let lsp_location =
                 transform_relay_location_to_lsp_location(root_dir, location).unwrap();
 
-            let entry = map.entry(lsp_location.uri);
-
-            let edits = entry.or_default();
-            edits.push(TextEdit {
+            changes.entry(lsp_location.uri).or_default().push(TextEdit {
                 range: lsp_location.range,
                 new_text: new_fragment_name.to_owned(),
             });
 
-            map
+            changes
         })
 }
 
@@ -283,9 +278,7 @@ impl Visitor for FragmentFinder {
 
 fn merge_changes(source: &mut HashMap<Url, Vec<TextEdit>>, target: HashMap<Url, Vec<TextEdit>>) {
     for (uri, changes) in target {
-        let entry = source.entry(uri);
-
-        let existing_changes = entry.or_default();
+        let existing_changes = source.entry(uri).or_default();
         for new_change in changes {
             existing_changes.push(new_change);
         }
