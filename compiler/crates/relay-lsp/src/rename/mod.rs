@@ -31,12 +31,11 @@ pub fn on_rename(
     state: &impl GlobalState,
     params: <Rename as Request>::Params,
 ) -> LSPRuntimeResult<<Rename as Request>::Result> {
-    // todo: why do I have to do this?
-    let uri = params.text_document_position.text_document.clone().uri;
+    let uri = &params.text_document_position.text_document.uri;
     let (feature, position_span, source_location_key) =
         state.extract_feature_from_text(&params.text_document_position, 1)?;
 
-    let program = &state.get_program(&state.extract_project_name_from_url(&uri)?)?;
+    let program = &state.get_program(&state.extract_project_name_from_url(uri)?)?;
     let root_dir = &state.root_dir();
 
     match feature {
