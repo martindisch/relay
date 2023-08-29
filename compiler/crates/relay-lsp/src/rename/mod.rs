@@ -26,7 +26,7 @@ use crate::{
     Feature, GlobalState, LSPRuntimeError, LSPRuntimeResult,
 };
 
-/// Resolve a RenameRequest to a RenameResponse
+/// Resolve a [`Rename`] request to workspace edits
 pub fn on_rename(
     state: &impl GlobalState,
     params: <Rename as Request>::Params,
@@ -77,7 +77,7 @@ pub fn on_rename(
     }
 }
 
-/// Resolve a PrepareRenameRequest to a PrepareRenameResponse
+/// Resolve a [`PrepareRenameRequest`] to a [`PrepareRenameResponse`]
 pub fn on_prepare_rename(
     state: &impl GlobalState,
     params: <PrepareRenameRequest as Request>::Params,
@@ -112,7 +112,7 @@ pub fn on_prepare_rename(
     }
 }
 
-/// Resolve a WillRenameFilesRequest to a WillRenameFilesResponse
+/// Resolve a [`WillRenameFiles`] request to workspace edits
 pub fn on_will_rename_files(
     state: &impl GlobalState,
     params: <WillRenameFiles as Request>::Params,
