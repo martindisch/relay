@@ -269,9 +269,6 @@ impl Visitor for FragmentFinder {
 
 fn merge_changes(source: &mut HashMap<Url, Vec<TextEdit>>, target: HashMap<Url, Vec<TextEdit>>) {
     for (uri, changes) in target {
-        let existing_changes = source.entry(uri).or_default();
-        for new_change in changes {
-            existing_changes.push(new_change);
-        }
+        source.entry(uri).or_default().extend(changes);
     }
 }
