@@ -146,17 +146,13 @@ pub fn on_will_rename_files(
         let program = &state.get_program(&state.extract_project_name_from_url(&old_file_uri)?)?;
         let root_dir = &state.root_dir();
 
-        let mut index = 0;
-        for embedded_source in &embedded_sources {
+        for (index, embedded_source) in embedded_sources.iter().enumerate() {
             match embedded_source {
                 JavaScriptSourceFeature::GraphQL(graphql_source) => {
-                    let source_location_key =
-                        SourceLocationKey::embedded(new_file_uri.as_ref(), index);
-
                     let text_source = graphql_source.text_source();
                     let document = parse_executable_with_error_recovery(
                         &text_source.text,
-                        source_location_key,
+                        SourceLocationKey::embedded(new_file_uri.as_ref(), index),
                     )
                     .item;
 
@@ -191,8 +187,6 @@ pub fn on_will_rename_files(
                 // todo: support docblocks
                 _ => (),
             };
-
-            index += 1;
         }
     }
 
