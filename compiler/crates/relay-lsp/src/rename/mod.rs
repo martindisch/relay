@@ -13,17 +13,19 @@ use std::path::PathBuf;
 use common::Location as IRLocation;
 use common::SourceLocationKey;
 use extract_graphql::JavaScriptSourceFeature;
+use graphql_ir::FragmentDefinition;
 use graphql_ir::FragmentDefinitionName;
 use graphql_ir::FragmentSpread;
 use graphql_ir::Program;
 use graphql_ir::Visitor;
 use graphql_syntax::parse_executable_with_error_recovery;
+use graphql_syntax::ExecutableDefinition;
 use intern::string_key::StringKey;
 use lsp_types::request::PrepareRenameRequest;
 use lsp_types::request::Rename;
 use lsp_types::request::Request;
 use lsp_types::request::WillRenameFiles;
-use lsp_types::Location;
+use lsp_types::Location as LspLocation;
 use lsp_types::PrepareRenameResponse;
 use lsp_types::TextEdit;
 use lsp_types::Url;
@@ -36,6 +38,7 @@ use resolution_path::ResolvePosition;
 use crate::location::get_file_contents;
 use crate::location::transform_relay_location_to_lsp_location;
 use crate::utils::is_file_uri_in_dir;
+use crate::Feature;
 use crate::GlobalState;
 use crate::LSPRuntimeError;
 use crate::LSPRuntimeResult;
@@ -54,7 +57,7 @@ pub fn on_rename(
     let root_dir = &state.root_dir();
 
     match feature {
-        crate::Feature::GraphQLDocument(document) => {
+        Feature::GraphQLDocument(document) => {
             let node_path = document.resolve((), position_span);
 
             match node_path {
@@ -90,7 +93,7 @@ pub fn on_rename(
                     inner: operation_name,
                     parent: IdentParent::OperationDefinitionName(_),
                 }) => {
-                    let location = common::Location::new(source_location_key, operation_name.span);
+                    let location = IRLocation::new(source_location_key, operation_name.span);
 
                     let lsp_location =
                         transform_relay_location_to_lsp_location(root_dir, location).unwrap();
@@ -120,7 +123,7 @@ pub fn on_prepare_rename(
     let root_dir = &state.root_dir();
 
     match feature {
-        crate::Feature::GraphQLDocument(document) => {
+        Feature::GraphQLDocument(document) => {
             let node_path = document.resolve((), position_span);
 
             match node_path {
@@ -128,8 +131,7 @@ pub fn on_prepare_rename(
                     inner: fragment_spread_name,
                     parent: IdentParent::FragmentSpreadName(_),
                 }) => {
-                    let location =
-                        common::Location::new(source_location_key, fragment_spread_name.span);
+                    let location = IRLocation::new(source_location_key, fragment_spread_name.span);
                     let lsp_location =
                         transform_relay_location_to_lsp_location(root_dir, location)?;
 
@@ -139,7 +141,7 @@ pub fn on_prepare_rename(
                     inner: fragment_name,
                     parent: IdentParent::FragmentDefinitionName(_),
                 }) => {
-                    let location = common::Location::new(source_location_key, fragment_name.span);
+                    let location = IRLocation::new(source_location_key, fragment_name.span);
                     let lsp_location =
                         transform_relay_location_to_lsp_location(root_dir, location)?;
 
@@ -149,7 +151,7 @@ pub fn on_prepare_rename(
                     inner: operation_name,
                     parent: IdentParent::OperationDefinitionName(_),
                 }) => {
-                    let location = common::Location::new(source_location_key, operation_name.span);
+                    let location = IRLocation::new(source_location_key, operation_name.span);
                     let lsp_location =
                         transform_relay_location_to_lsp_location(root_dir, location)?;
 
@@ -214,7 +216,7 @@ pub fn on_will_rename_files(
 
                     for definition in &document.definitions {
                         let changes = match definition {
-                            graphql_syntax::ExecutableDefinition::Fragment(frag_def) => {
+                            ExecutableDefinition::Fragment(frag_def) => {
                                 let frag_name = frag_def.name.value;
                                 let old_frag_name = frag_name.to_string();
                                 let new_frag_name =
@@ -222,7 +224,7 @@ pub fn on_will_rename_files(
 
                                 rename_fragment(frag_name, new_frag_name, program, root_dir)
                             }
-                            graphql_syntax::ExecutableDefinition::Operation(op_def) => {
+                            ExecutableDefinition::Operation(op_def) => {
                                 let operation_name_identifier = op_def.name.unwrap();
                                 let old_operation_name = operation_name_identifier.to_string();
                                 let new_operation_name =
@@ -231,7 +233,7 @@ pub fn on_will_rename_files(
                                 let name_range =
                                     text_source.to_span_range(operation_name_identifier.span);
 
-                                let location = Location::new(old_file_uri.clone(), name_range);
+                                let location = LspLocation::new(old_file_uri.clone(), name_range);
 
                                 rename_operation(new_operation_name, location)
                             }
@@ -256,7 +258,10 @@ pub fn on_will_rename_files(
     }))
 }
 
-fn rename_operation(new_operation_name: String, location: Location) -> HashMap<Url, Vec<TextEdit>> {
+fn rename_operation(
+    new_operation_name: String,
+    location: LspLocation,
+) -> HashMap<Url, Vec<TextEdit>> {
     HashMap::from([(
         location.uri,
         vec![TextEdit {
@@ -318,7 +323,7 @@ impl Visitor for FragmentFinder {
         }
     }
 
-    fn visit_fragment(&mut self, fragment: &graphql_ir::FragmentDefinition) {
+    fn visit_fragment(&mut self, fragment: &FragmentDefinition) {
         if fragment.name.item == FragmentDefinitionName(self.fragment_name) {
             self.fragment_locations.push(fragment.name.location)
         }
