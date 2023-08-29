@@ -12,7 +12,9 @@ use std::{collections::HashMap, path::PathBuf};
 use common::{Location as IRLocation, SourceLocationKey};
 use extract_graphql::JavaScriptSourceFeature;
 use graphql_ir::{FragmentDefinition, FragmentSpread, Program, Visitor};
-use graphql_syntax::{parse_executable_with_error_recovery, ExecutableDefinition};
+use graphql_syntax::{
+    parse_executable_with_error_recovery, ExecutableDefinition, OperationDefinition,
+};
 use intern::string_key::StringKey;
 use lsp_types::{
     request::{PrepareRenameRequest, Rename, Request, WillRenameFiles},
@@ -166,8 +168,10 @@ pub fn on_will_rename_files(
 
                                 rename_fragment(frag_name, new_frag_name, program, root_dir)?
                             }
-                            ExecutableDefinition::Operation(op_def) => {
-                                let operation_name_identifier = op_def.name.unwrap();
+                            ExecutableDefinition::Operation(OperationDefinition {
+                                name: Some(operation_name_identifier),
+                                ..
+                            }) => {
                                 let old_operation_name = operation_name_identifier.to_string();
                                 let new_operation_name =
                                     old_operation_name.replace(old_file_name, new_file_name);
@@ -179,6 +183,9 @@ pub fn on_will_rename_files(
 
                                 rename_operation(new_operation_name, location)
                             }
+                            ExecutableDefinition::Operation(
+                                graphql_syntax::OperationDefinition { name: None, .. },
+                            ) => HashMap::new(),
                         };
 
                         merge_changes(&mut rename_changes, changes);
