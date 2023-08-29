@@ -47,12 +47,8 @@ pub fn on_rename(
 ) -> LSPRuntimeResult<<Rename as Request>::Result> {
     // todo: why do I have to do this?
     let uri = params.text_document_position.text_document.clone().uri;
-    let text_document_position_params = lsp_types::TextDocumentPositionParams {
-        text_document: params.text_document_position.text_document,
-        position: params.text_document_position.position,
-    };
     let (feature, position_span, source_location_key) =
-        state.extract_feature_from_text(&text_document_position_params, 1)?;
+        state.extract_feature_from_text(&params.text_document_position, 1)?;
 
     let program = &state.get_program(&state.extract_project_name_from_url(&uri)?)?;
     let root_dir = &state.root_dir();
@@ -119,12 +115,8 @@ pub fn on_prepare_rename(
     state: &impl GlobalState,
     params: <PrepareRenameRequest as Request>::Params,
 ) -> LSPRuntimeResult<<PrepareRenameRequest as Request>::Result> {
-    let text_document_position_params = lsp_types::TextDocumentPositionParams {
-        text_document: params.text_document,
-        position: params.position,
-    };
     let (feature, position_span, source_location_key) =
-        state.extract_feature_from_text(&text_document_position_params, 1)?;
+        state.extract_feature_from_text(&params, 1)?;
     let root_dir = &state.root_dir();
 
     match feature {
