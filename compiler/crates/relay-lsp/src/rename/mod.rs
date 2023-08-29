@@ -11,7 +11,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use common::{Location as IRLocation, SourceLocationKey};
 use extract_graphql::JavaScriptSourceFeature;
-use graphql_ir::{FragmentDefinition, FragmentDefinitionName, FragmentSpread, Program, Visitor};
+use graphql_ir::{FragmentDefinition, FragmentSpread, Program, Visitor};
 use graphql_syntax::{parse_executable_with_error_recovery, ExecutableDefinition};
 use intern::string_key::StringKey;
 use lsp_types::{
@@ -253,13 +253,13 @@ impl Visitor for FragmentFinder {
     const VISIT_DIRECTIVES: bool = false;
 
     fn visit_fragment_spread(&mut self, spread: &FragmentSpread) {
-        if spread.fragment.item == FragmentDefinitionName(self.fragment_name) {
+        if spread.fragment.item.0 == self.fragment_name {
             self.fragment_locations.push(spread.fragment.location);
         }
     }
 
     fn visit_fragment(&mut self, fragment: &FragmentDefinition) {
-        if fragment.name.item == FragmentDefinitionName(self.fragment_name) {
+        if fragment.name.item.0 == self.fragment_name {
             self.fragment_locations.push(fragment.name.location)
         }
 
