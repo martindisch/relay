@@ -148,8 +148,7 @@ pub fn on_will_rename_files(
 
         let mut index = 0;
         for embedded_source in &embedded_sources {
-            // todo: do the rusty way
-            let _ = match embedded_source {
+            match embedded_source {
                 JavaScriptSourceFeature::GraphQL(graphql_source) => {
                     let source_location_key =
                         SourceLocationKey::embedded(new_file_uri.as_ref(), index);
@@ -188,11 +187,9 @@ pub fn on_will_rename_files(
 
                         merge_changes(&mut rename_changes, changes);
                     }
-
-                    Ok(())
                 }
                 // todo: support docblocks
-                _ => Err(LSPRuntimeError::ExpectedError),
+                _ => (),
             };
 
             index += 1;
